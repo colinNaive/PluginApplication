@@ -23,21 +23,22 @@ Android插件化作为每个合格的Android程序员都必须会的技术，被
 话不多说，我们直接开始撸代码。
 
 ###插件app的activity没有在宿主app中注册，该怎么办？
-插桩，一个空的Activity，专门用来加载插件app中的activity。
+插桩，一个空的Activity，专门用来加载插件app中的activity，这个Activity叫ProxyActivity，后面我会具体去讲这个空Activity该如何实现。我们只需要在宿主app里注册这个Activity就可以了。
+<img src="http://img-blog.csdn.net/20180315104103339?watermark/2/text/Ly9ibG9nLmNzZG4ubmV0L2NvbGluYW5kcm9pZA==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" width="80%" height="80%" />
 
 ###加载插件app中的Activity
-1. 将编译好的插件apk放到手机外置SD卡的根目录中。当然实际场景中插件apk肯定是由服务端下发后，保存到SD卡的某个文件夹下。
+1. 实际场景中插件apk肯定是由服务端下发后，保存到SD卡的某个文件夹下。这里将编译好的插件apk放到手机外置SD卡的根目录中，我们来演示宿主app如何去加载插件app中的Activity。
 ![这里写图片描述](http://img.blog.csdn.net/20180303233806234?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvY29saW5hbmRyb2lk/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
 
 2. 加载该Activity的**类**
-看到这里，你首先想到的肯定是用反射。
-![这里写图片描述](http://img.blog.csdn.net/20180303233501752?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvY29saW5hbmRyb2lk/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+接下来我们来看下FluginManager的loadPath方法如何实现。如果要实现这个功能，首先想到的肯定是用反射。
+<img src="http://img.blog.csdn.net/20180303233501752?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvY29saW5hbmRyb2lk/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" width="60%" height="60%" />
 可是你别忘记了，插件app根本就没有安装，这里是无法找到这个Class的。我们需要DexClassLoader来完成Activity类的加载。
 ![这里写图片描述](http://img.blog.csdn.net/20180304002129545?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvY29saW5hbmRyb2lk/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)PluginManager的getDexClassLoader的实现如下：
 ![这里写图片描述](http://img.blog.csdn.net/20180304001108954?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvY29saW5hbmRyb2lk/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
 
 3. 加载该Activity的**资源文件**
-我们在日常开发中需要资源文件时，我们是通过getResources()来获取。例如加载一个图片:
+讲完了如何加载Activity，我们来讲下如何加载Activity中用到的资源文件。我们在日常开发中需要资源文件时，我们是通过getResources()来获取。例如加载一个图片:
 
 ```
 getResources().getDrawable()
@@ -178,6 +179,17 @@ class ProxyActivity : AppCompatActivity() {
     }
 }
 ```
-这时我们就可以成功跳转了。ok，插件化实现完成。我们来看下效果。![这里写
+这时我们就可以成功跳转了。ok，插件化实现完成。我们来看下效果。
 <img src="https://images2018.cnblogs.com/blog/1269107/201803/1269107-20180308000156592-867821103.gif" width="40%" height="30%" />
 这里**[附上demo（点击下载）](https://github.com/colinNaive/PluginApplication)**，如有任何疑问可留言提问，博主每天都会查看。
+
+~~~~~~~~华丽丽的分割线：在插件app中实现更多功能~~~~~~~
+之前我们的插件app的activity其实就只是加载了一个imageView，我们现在来实现这样一个功能：“点击ImageView，弹出一个toast”。
+代码如下：
+![这里写图片描述](//img-blog.csdn.net/20180315112844158?watermark/2/text/Ly9ibG9nLmNzZG4ubmV0L2NvbGluYW5kcm9pZA==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70)
+我们来看下效果。。
+然而，点击竟然crash了。我们来贴下错误日志：
+![这里写图片描述](//img-blog.csdn.net/20180315113742547?watermark/2/text/Ly9ibG9nLmNzZG4ubmV0L2NvbGluYW5kcm9pZA==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70)
+原来我们在插件Activity中不能用自己的上下文，我们应该用that！！
+<img src="https://img-blog.csdn.net/20180315114849699?watermark/2/text/Ly9ibG9nLmNzZG4ubmV0L2NvbGluYW5kcm9pZA==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" width="40%" height="30%" />
+代码已经[**更新到github**](https://github.com/colinNaive/PluginApplication)上，欢迎下载体验。
