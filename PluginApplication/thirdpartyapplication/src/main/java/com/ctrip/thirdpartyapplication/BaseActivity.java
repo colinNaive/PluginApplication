@@ -21,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class BaseActivity extends Activity implements AppInterface {
 
-    private Activity that;
+    protected Activity that;
 
     @Override
     public void attach(@NotNull Activity activity) {

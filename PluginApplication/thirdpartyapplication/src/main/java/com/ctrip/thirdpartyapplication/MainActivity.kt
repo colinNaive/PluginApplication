@@ -2,6 +2,7 @@ package com.ctrip.thirdpartyapplication
 
 import android.os.Bundle
 import android.widget.ImageView
+import android.widget.Toast
 
 class MainActivity : BaseActivity() {
 
@@ -14,5 +15,8 @@ class MainActivity : BaseActivity() {
          * 所以，需要重新findViewById，让宿主app来实现
          */
         var img = findViewById<ImageView>(R.id.img)
+        img.setOnClickListener({
+            Toast.makeText(that, "点击啦", Toast.LENGTH_SHORT).show()
+        })
     }
 }
